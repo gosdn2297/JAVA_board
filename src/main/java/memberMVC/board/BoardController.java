@@ -2,6 +2,7 @@ package memberMVC.board;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +46,8 @@ public class BoardController extends HttpServlet {
 	private void doHandle (HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		request.setCharacterEncoding("utf-8");
 		response.setContentType("text/html;charset=utf-8");
-		String nextPage=""; 
+		String nextPage="";
+		PrintWriter out; 
 		String action=request.getPathInfo(); //요청명을 가져온다.
 		try {
 			List<ArticleVO> articleList=new ArrayList<ArticleVO>();
@@ -78,12 +80,45 @@ public class BoardController extends HttpServlet {
 					FileUtils.moveFileToDirectory(srcFile, destDir, true);
 					srcFile.delete();
 				}
-				nextPage="/board/listArticles.do";
+				out=response.getWriter();
+				out.print("<script>");
+				out.print("alert('새 글을 추가했습니다.');");
+				out.print("location.href='" + request.getContextPath() + "/board/listArticles.do';");
+				out.print("</script>");
+				return;
 			}else if (action.equals("/viewArticle.do")) {
 				String articleNo=request.getParameter("articleNo");
 				articleVO=boardService.viewArticle(Integer.parseInt(articleNo));
 				request.setAttribute("article", articleVO);
 				nextPage="/boardinfo/viewArticle.jsp";
+			}else if(action.equals("/modArticle.do")) {
+				Map<String, String> articleMap=upload(request, response);
+				int articleNo=Integer.parseInt(articleMap.get("articleNo"));
+				String title=articleMap.get("title");
+				String content=articleMap.get("content");
+				String imageFileName=articleMap.get("imageFileName");
+				articleVO.setArticleNo(articleNo);
+				articleVO.setParentNo(0);
+				articleVO.setTitle(title);
+				articleVO.setContent(content);
+				articleVO.setImageFileName(imageFileName);
+				boardService.modArticle(articleVO);
+				//이미지를 첨부한 경우에만 수행
+				if (imageFileName !=null && imageFileName.length() !=0) {
+					String originalFileName=articleMap.get("originalFileName");
+					File srcFile=new File(IMG_REPO+"\\temp\\"+imageFileName);
+					File destDir=new File(IMG_REPO+"\\"+articleNo);
+					destDir.mkdir();
+					FileUtils.moveFileToDirectory(srcFile, destDir, true);
+					File oldFile =new File(IMG_REPO+"\\" +originalFileName);
+					oldFile.delete();
+				}
+				out=response.getWriter();
+				out.print("<script>");
+				out.print("alert('글을 수정했습니다.');");
+				out.print("location.href='" + request.getContextPath() + "/board/viewArticle.do?articleNo=" + articleNo + "';"); 
+				out.print("</script>");
+				return;
 			}
 			RequestDispatcher dispatcher=request.getRequestDispatcher(nextPage);
 			dispatcher.forward(request, response);			
@@ -111,8 +146,8 @@ public class BoardController extends HttpServlet {
 					articleMap.put(fileItem.getFieldName(), fileItem.getString(encoding));
 				}else {
 					System.out.println("파라미터 이름 : " + fileItem.getFieldName());
-					System.out.println("파일 이름 : " + fileItem.getFieldName());
-					System.out.println("파일(이미지) 크기 : " + fileItem.getFieldName() + "bytes");
+					System.out.println("파일 이름 : " + fileItem.getName());
+					System.out.println("파일(이미지) 크기 : " + fileItem.getSize() + "bytes");
 					if (fileItem.getSize() > 0) {
 						int idx=fileItem.getName().lastIndexOf("\\");
 						if (idx == -1) {
