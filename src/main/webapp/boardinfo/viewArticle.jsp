@@ -40,6 +40,7 @@ request.setCharacterEncoding("utf-8");
      obj.action="${contextPath}/board/modArticle.do";
       obj.submit();
   }
+  //이미지 미리보기 구현
   function readImage(input) {
      if(input.files && input.files[0]) {
         let reader = new FileReader();
@@ -53,6 +54,32 @@ request.setCharacterEncoding("utf-8");
       obj.action ="${contextPath}/board/viewArticle.do?articleNo=${article.articleNo}";
       obj.submit();
   }
+  function fn_remove_article(url,articleNo){
+	     let d_form=document.createElement("form");
+	     d_form.setAttribute("method","post"); 
+	     d_form.setAttribute("action",url);
+	     let articleNoInput=document.createElement("input");
+	     articleNoInput.setAttribute("type","hidden");
+	     articleNoInput.setAttribute("name","articleNo");
+	     articleNoInput.setAttribute("value",articleNo);
+	     d_form.appendChild(articleNoInput);
+	     document.body.appendChild(d_form);
+	      d_form.submit();
+}
+  function fn_reply_form(url,parentNo){
+	  	let d_form=document.createElement("form");
+	     d_form.setAttribute("method","post"); 
+	     d_form.setAttribute("action",url);
+	     let articleNoInput=document.createElement("input");
+	     articleNoInput.setAttribute("type","hidden");
+	     articleNoInput.setAttribute("name","parentNo");
+	     articleNoInput.setAttribute("value",parentNo);
+	     d_form.appendChild(articleNoInput);
+	     document.body.appendChild(d_form);
+	     d_form.submit();
+	  
+  }
+  
 </script>
 </head>
 <body> 
@@ -102,7 +129,7 @@ request.setCharacterEncoding("utf-8");
            <input type="button" value="수정하기"  onclick="fn_enable(this.form)">
            <input type="button" value="삭제하기"  onclick="fn_remove_article('${contextPath}/board/removeArticle.do',${article.articleNo})">
            <input type="button" value="리스트로 돌아가기" onclick="backToList(this.form)">
-           <input type="button" value="답글쓰기"  onclick="fn_reply_form('${contextPath}/board/replyform.do',${article.articleNo})">        
+           <input type="button" value="답글쓰기"  onclick="fn_reply_form('${contextPath}/board/replyForm.do',${article.articleNo})">        
            </td> 
            </tr>         
        </table>
