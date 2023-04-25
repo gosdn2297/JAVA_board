@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
 import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.sql.DataSource;
@@ -25,18 +27,65 @@ public class BoardDAO {
          e.printStackTrace();
       }
    }
-   // 글 목록
-   public List<ArticleVO> selectAllArticles() {
-      List<ArticleVO> articleList = new ArrayList<>();
-      
+   // 오늘 추가한 코드
+   // 글 목록 페이징 메서드
+   public List selectAllArticles(Map<String, Integer> paginMap) {
+      List<ArticleVO> articleList = new ArrayList<ArticleVO>();
+      int section = paginMap.get("section");
+      int pageNum = paginMap.get("pageNum");
       try {
          conn = dataFactory.getConnection();
-         String query = "SELECT LEVEL, articleNo, parentNo, title, content, writeDate, id FROM boardtbl " + 
-                     "START WITH parentNo=0 CONNECT BY PRIOR articleNo=parentNo ORDER SIBLINGS BY articleNo DESC";
+         String query = "SELECT * FROM(SELECT ROWNUM AS recNum, LVL, articleNo,"
+               + " parentNo,title, id, writeDate from (SELECT LEVEL AS LVL, articleNo,"
+               + " parentNo, title, id, writeDate from boardtbl START WITH parentNo=0"
+               + " CONNECT BY PRIOR articleNo=parentNo ORDER SIBLINGS BY articleNo DESC))"
+               + " WHERE recNum BETWEEN (?-1)*100+(?-1)*10+1 AND (?-1)*100+?*10";
+         pstmt = conn.prepareStatement(query);
+         pstmt.setInt(1, section);
+         pstmt.setInt(2, pageNum);
+         pstmt.setInt(3, section);
+         pstmt.setInt(4, pageNum);
+         ResultSet rs = pstmt.executeQuery();
+         while (rs.next()) {
+            int level = rs.getInt("LVL");
+            int articleNo = rs.getInt("articleNo");
+            int parentNo = rs.getInt("parentNo");
+            String title = rs.getString("title");
+            String id = rs.getString("id");
+            Date writeDate = rs.getDate("writeDate");
+            ArticleVO articleVO = new ArticleVO();
+            articleVO.setLevel(level);
+            articleVO.setArticleNo(articleNo);
+            articleVO.setParentNo(parentNo);
+            articleVO.setTitle(title);
+            articleVO.setId(id);
+            articleVO.setWriteDate(writeDate);
+            articleList.add(articleVO);
+         }
+         rs.close();
+         pstmt.close();
+         conn.close();
+      } catch (Exception e) {
+         System.out.println("글 목록 페이징 조회 중 에러!!");
+         e.printStackTrace();
+      }
+      return articleList;
+   }
+
+   // 오늘 추가한 코드
+   // 글 목록
+   public List<ArticleVO> selectAllArticles() {
+      List<ArticleVO> articleList = new ArrayList();
+      try {
+         conn = dataFactory.getConnection();
+         // 답변형이므로 계층형DB다 따라서
+         String query = "SELECT LEVEL, articleNo, parentNo, title, content, writeDate, id FROM "
+               + "boardtbl START WITH parentNo=0 CONNECT BY PRIOR articleNo=parentNo "
+               + "ORDER SIBLINGS BY articleNo DESC";
          pstmt = conn.prepareStatement(query);
          ResultSet rs = pstmt.executeQuery();
-         while(rs.next()) {
-            int level = rs.getInt("level"); // 계층형 글의 깊이(level 속성)
+         while (rs.next()) {
+            int level = rs.getInt("level"); // 계층형DB에서 글의 깊이(level 속성)
             int articleNo = rs.getInt("articleNo");
             int parentNo = rs.getInt("parentNo");
             String title = rs.getString("title");
@@ -57,14 +106,37 @@ public class BoardDAO {
          pstmt.close();
          conn.close();
       } catch (Exception e) {
-         System.out.println("글 목록 처리 중 에러");
+         System.out.println("글 목록 처리중 에러!!");
          e.printStackTrace();
       }
       return articleList;
    }
+
+   // 전체 글 목록 수
+   public int selectToArticles() {
+      int totCount = 0;
+      try {
+         conn = dataFactory.getConnection();
+         String query = "Select count(articleNo) from boardtbl";
+         pstmt = conn.prepareStatement(query);
+         ResultSet rs = pstmt.executeQuery();
+         if (rs.next()) {
+            totCount = rs.getInt(1);
+         }
+         rs.close();
+         pstmt.close();
+         conn.close();
+      } catch (Exception e) {
+         System.out.println("글 목록 수 처리 중 에러!!");
+         e.printStackTrace();
+      }
+      return totCount;
+   }
+
+
    //글번호 생성 메서드
    private int getNewArticleNo() {
-      int aNo=1;
+      int aNo=0;
       try {
          conn = dataFactory.getConnection();
          //max 함수를 이용해서 가장 큰 번호를 조회

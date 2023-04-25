@@ -55,10 +55,24 @@ public class BoardController extends HttpServlet {
       System.out.println("요청 이름 : " + action);
       
       try {
-         List<ArticleVO> articleList = new ArrayList<ArticleVO>();
-         if (action == null || action.equals("/listArticles.do")) {
-            articleList = boardService.listArticles();
-            request.setAttribute("articleList", articleList);
+          List<ArticleVO> articleList = new ArrayList<ArticleVO>();
+          if (action == null || action.equals("/listArticles.do")) {// 어떤 매핑정보도 날라오지 않은경우
+             // 오늘 코드 추가한부분
+             String _section = request.getParameter("section");
+             String _pageNum = request.getParameter("pageNum");
+             int section = Integer.parseInt((_section == null) ? "1" : _section); // section이 받은값이 null값이냐고 물어보고 맞을시
+                                                                   // 1이 들어간다
+             int pageNum = Integer.parseInt((_pageNum == null) ? "1" : _pageNum);
+             Map<String, Integer> pagingMap = new HashMap<String, Integer>();
+
+            pagingMap.put("section", section);
+            pagingMap.put("pageNum", pageNum);
+            Map articleMap = boardService.listArticles(pagingMap);
+            articleMap.put("section", section);
+            articleMap.put("pageNum", pageNum);
+            request.setAttribute("articleMap", articleMap);
+            //articleList = boardService.listArticles();
+            //request.setAttribute("articleList", articleList);
             nextPage = "/boardinfo/listArticles.jsp";
          }else if(action.equals("/articleForm.do")) {
             nextPage ="/boardinfo/articleForm.jsp";

@@ -1,12 +1,25 @@
 package memberMVC.board;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BoardService {
    BoardDAO boardDAO;
    
    public BoardService() {
       boardDAO = new BoardDAO(); //생성자에서 BoardDAO 객체를 생성
+   }
+   
+// 오늘 추가한 코드
+   public Map listArticles(Map<String, Integer> pagingMap) {
+      Map articleMap = new HashMap();
+      List<ArticleVO> articleList = boardDAO.selectAllArticles(pagingMap);
+      int totArticles = boardDAO.selectToArticles();
+      articleMap.put("articleList", articleList);
+      articleMap.put("totArticles", totArticles);
+//      articleMap.put("totArticles", 100);
+      return articleMap;
    }
    
    public List<ArticleVO> listArticles() {
